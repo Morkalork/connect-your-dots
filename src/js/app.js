@@ -1,5 +1,5 @@
 var Snap = require('snapsvg');
-var _ = require('lodash/collection');
+var _ = require('lodash');
 
 (function () {
   const CircleRadius = 8;
@@ -7,10 +7,12 @@ var _ = require('lodash/collection');
   const PlaceholderStrokeColor = "#0098BA";
   const PlaceholderFillColor = "#A8E0ED";
   const StrokeColor = "#000";
+  const SelectedStrokeColor = "#00FF00";
 
-  var snap;
+  var paper;
   var lastCircle;
-  
+  var lastPlaceholder;
+
   var relativeLocationX = 0;
   var relativeLocationY = 0;
   var dragStartX = 0;
@@ -18,29 +20,30 @@ var _ = require('lodash/collection');
 
   var dragIsCalled = false;
   var lineBeingDragged = null;
-  
+
   var circles = [];
   var lines = [];
 
   function renderDragPlaceholder(placeHolder) {
-    
-    var placeHolderLineOptions = { 
+
+    var placeHolderLineOptions = {
       strokeColor: PlaceholderStrokeColor,
       opacity: 0.5,
       strokeDasharray: "10,10"
     };
-    
+
     renderLine(placeHolder.leftLine, placeHolderLineOptions);
     renderLine(placeHolder.rightLine, placeHolderLineOptions);
     renderCircle(placeHolder.circle, PlaceholderStrokeColor, PlaceholderFillColor, 0.5);
+    lastPlaceholder = placeHolder;
   };
 
-  function getDraggedLine(t){
+  function getDraggedLine(t) {
     var startX = t.data('startX');
     var startY = t.data('startY');
     var endX = t.data('endX');
     var endY = t.data('endY');
-    
+
     return _.find(lines, l => {
       return l.startX == startX
         && l.startY == startY
@@ -48,33 +51,42 @@ var _ = require('lodash/collection');
         && l.endY == endY;
     });
   }
+  
+  function dropLine(line){
+    _.remove(lines, l => {
+      return l.startX == line.startX
+        && l.startY == line.startY
+        && l.endX == line.endX
+        && l.endY == line.endY;
+    });
+  }
 
   function dragMove(xFromStart, yFromStart) {
     var x = (dragStartX + xFromStart) - relativeLocationX;
     var y = (dragStartY + yFromStart) - relativeLocationY;
-    
-    
-    var line = getDraggedLine(this);
-    
+
+
+    lineBeingDragged = getDraggedLine(this);
+
     var dragPlaceholder = {
       leftLine: {
-        startX: line.startCircle.x,
-        startY: line.startCircle.y,
+        startX: lineBeingDragged.startCircle.x,
+        startY: lineBeingDragged.startCircle.y,
         endX: x,
         endY: y
       },
       rightLine: {
         startX: x,
         startY: y,
-        endX: line.endCircle.x,
-        endY: line.endCircle.y
+        endX: lineBeingDragged.endCircle.x,
+        endY: lineBeingDragged.endCircle.y
       },
       circle: {
         x: x,
         y: y
       }
     };
-    
+
     clear();
     renderDragPlaceholder(dragPlaceholder);
     render();
@@ -83,25 +95,39 @@ var _ = require('lodash/collection');
   function dragStart(x, y, e) {
     dragStartX = x;
     dragStartY = y;
-    console.log(e);
-    
+
     dragIsCalled = true;
-    lineBeingDragged = this;
   };
 
   function dragEnd(e) {
+    
+    dropLine(lineBeingDragged);
+    
+    clear();
+    renderLine(lastPlaceholder.leftLine);
+    renderLine(lastPlaceholder.rightLine);
+    renderCircle(lastPlaceholder.circle);
+    render();
+
+    lines.push(lastPlaceholder.leftLine);
+    lines.push(lastPlaceholder.rightLine);
+    circles.push(lastPlaceholder.circle);
+
+    lastCircle = lastPlaceholder.circle;
+    lastPlaceholder = null;
+    lineBeingDragged = null;
+    dragIsCalled = false;
   };
 
   /**
    * options = color, opacity, strokeDasharray
    */
   function renderLine(lineInfo, options) {
-    if(!options) {
+    if (!options) {
       options = {};
     }
-    
-    console.log(options);
-    snap.line(
+
+    paper.line(
       lineInfo.startX,
       lineInfo.startY,
       lineInfo.endX,
@@ -123,7 +149,7 @@ var _ = require('lodash/collection');
   };
 
   function renderCircle(circleInfo, fillColor, strokeColor, opacity) {
-    snap.circle(
+    paper.circle(
       circleInfo.x,
       circleInfo.y,
       CircleRadius
@@ -148,16 +174,16 @@ var _ = require('lodash/collection');
 
         addLineBetweenCircles(lastCircle, thisCircle);
         lastCircle = thisCircle;
-        
+
         clear();
         render();
         e.stopPropagation();
       });
   };
-  
-  function clear(){
+
+  function clear() {
     //Guess what this does :)
-    snap.clear();
+    paper.clear();
   }
 
   function render() {
@@ -174,9 +200,9 @@ var _ = require('lodash/collection');
   };
 
   function setupSnap() {
-    snap = Snap("#svg-main");
+    paper = Snap("#svg-main");
 
-    snap.click(function (e) {
+    paper.click(function (e) {
       if (dragIsCalled) {
         dragIsCalled = false;
         return;
@@ -224,7 +250,7 @@ var _ = require('lodash/collection');
     var svgBoundaries = svg.getBoundingClientRect();
     relativeLocationX = svgBoundaries.left;
     relativeLocationY = svgBoundaries.top;
-    
+
     setupSnap();
   };
 
