@@ -69,39 +69,41 @@ var _ = require('lodash');
   };
   
   function dropCircle(circle){
-    console.log(circle);
-    console.info(circles);
     _.remove(circles, c => {
       return c.x == circle.x 
         && c.y == circle.y;
     });
-    console.info(circles);
   };
 
   function dragMove(xFromStart, yFromStart) {
     var x = (dragStartX + xFromStart) - relativeLocationX;
     var y = (dragStartY + yFromStart) - relativeLocationY;
 
-
     lineBeingDragged = getDraggedLine(this);
-
+    
+    var newCircle = {
+      x: x,
+      y: y
+    };
+    
     var dragPlaceholder = {
       leftLine: {
         startX: lineBeingDragged.startCircle.x,
         startY: lineBeingDragged.startCircle.y,
         endX: x,
-        endY: y
+        endY: y,
+        startCircle: lineBeingDragged.startCircle,
+        endCircle: newCircle
       },
       rightLine: {
         startX: x,
         startY: y,
         endX: lineBeingDragged.endCircle.x,
-        endY: lineBeingDragged.endCircle.y
+        endY: lineBeingDragged.endCircle.y,
+        startCircle: newCircle,
+        endCircle: lineBeingDragged.endCircle
       },
-      circle: {
-        x: x,
-        y: y
-      }
+      circle: newCircle
     };
 
     clear();
