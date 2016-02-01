@@ -24,6 +24,6 @@ body {
   margin-top: 20px;
 }
 
-line {
+line, circle {
   cursor: pointer;
 }
