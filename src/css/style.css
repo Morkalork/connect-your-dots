@@ -1,0 +1,26 @@
+* {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: #ddd;
+}
+
+.wrapper {
+  background: #fff;
+  border: 2px #000 solid;
+  box-shadow: 0 0 12px #444;
+  padding: 10px;
+  width: 1000px;
+  margin: 20px auto;
+  text-align: center;
+}
+
+#svg-main {
+  width: 800px;
+  height: 800px;
+  border: 2px #000 solid;
+  margin-top: 20px;
+}
+
