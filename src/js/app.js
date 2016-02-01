@@ -7,11 +7,12 @@ var _ = require('lodash');
   const PlaceholderStrokeColor = "#0098BA";
   const PlaceholderFillColor = "#A8E0ED";
   const StrokeColor = "#000";
-  const SelectedStrokeColor = "#00FF00";
+  const SelectedStrokeColor = "#FF0000";
 
   var paper;
   var lastCircle;
   var lastPlaceholder;
+  var selectedCircle;
 
   var relativeLocationX = 0;
   var relativeLocationY = 0;
@@ -31,10 +32,16 @@ var _ = require('lodash');
       opacity: 0.5,
       strokeDasharray: "10,10"
     };
+    
+    var placeHolderCircleOptions = {
+      strokeColor: PlaceholderStrokeColor,
+      filleColor: PlaceholderFillColor,
+      opacity: 0.5
+    };
 
     renderLine(placeHolder.leftLine, placeHolderLineOptions);
     renderLine(placeHolder.rightLine, placeHolderLineOptions);
-    renderCircle(placeHolder.circle, PlaceholderStrokeColor, PlaceholderFillColor, 0.5);
+    renderCircle(placeHolder.circle, placeHolderCircleOptions);
     lastPlaceholder = placeHolder;
   };
 
@@ -50,7 +57,7 @@ var _ = require('lodash');
         && l.endX == endX
         && l.endY == endY;
     });
-  }
+  };
 
   function dropLine(line) {
     _.remove(lines, l => {
@@ -59,7 +66,17 @@ var _ = require('lodash');
         && l.endX == line.endX
         && l.endY == line.endY;
     });
-  }
+  };
+  
+  function dropCircle(circle){
+    console.log(circle);
+    console.info(circles);
+    _.remove(circles, c => {
+      return c.x == circle.x 
+        && c.y == circle.y;
+    });
+    console.info(circles);
+  };
 
   function dragMove(xFromStart, yFromStart) {
     var x = (dragStartX + xFromStart) - relativeLocationX;
@@ -120,20 +137,19 @@ var _ = require('lodash');
   };
 
   /**
-   * @param paper         The SnapSVG paper to draw on
    * @param linePosition  The positioning information for the line (startX, startY, endX, endY)
    * @param options       Additional options for the line (strokeColor, opacity, strokeDasharray)
    */
-  function renderLine(lineInfo, options) {
+  function renderLine(linePosition, options) {
     if (!options) {
       options = {};
     }
 
     paper.line(
-      lineInfo.startX,
-      lineInfo.startY,
-      lineInfo.endX,
-      lineInfo.endY
+      linePosition.startX,
+      linePosition.startY,
+      linePosition.endX,
+      linePosition.endY
       )
       .attr({
         stroke: options.strokeColor || StrokeColor,
@@ -142,29 +158,43 @@ var _ = require('lodash');
         strokeDasharray: options.strokeDasharray || ""
       })
       .data({
-        startX: lineInfo.startX,
-        startY: lineInfo.startY,
-        endX: lineInfo.endX,
-        endY: lineInfo.endY
+        startX: linePosition.startX,
+        startY: linePosition.startY,
+        endX: linePosition.endX,
+        endY: linePosition.endY
       })
       .drag(dragMove, dragStart, dragEnd);
   };
 
-  function renderCircle(circleInfo, fillColor, strokeColor, opacity) {
+  /**
+   * @param circlePosition  The positioning information for the circle (x, y)
+   * @param options         Additional options for the circle (fillColor, strokeColor, opacity, strokeDasharray)
+   */
+  function renderCircle(circlePosition, options) {
+    if(!options){
+      options = {};
+    }
+    
+    if(selectedCircle && 
+    (selectedCircle.x === circlePosition.x && selectedCircle.y === circlePosition.y)){
+      options.strokeColor = SelectedStrokeColor;
+    }
+    
     paper.circle(
-      circleInfo.x,
-      circleInfo.y,
+      circlePosition.x,
+      circlePosition.y,
       CircleRadius
       )
       .attr({
-        fill: fillColor || FillColor,
-        opacity: opacity || 1,
-        stroke: strokeColor || StrokeColor,
-        strokeWidth: 4
+        fill: options.fillColor || FillColor,
+        opacity: options.opacity || 1,
+        stroke: options.strokeColor || StrokeColor,
+        strokeWidth: 4,
+        strokeDasharray: options.strokeDasharray || ""
       })
       .data({
-        x: circleInfo.x,
-        y: circleInfo.y
+        x: circlePosition.x,
+        y: circlePosition.y
       })
       .click(function (e) {
         dragIsCalled = false;
@@ -173,7 +203,9 @@ var _ = require('lodash');
           x: this.data('x'),
           y: this.data('y')
         };
-
+        
+        selectedCircle = thisCircle;
+        
         addLineBetweenCircles(lastCircle, thisCircle);
         lastCircle = thisCircle;
 
@@ -210,6 +242,7 @@ var _ = require('lodash');
         return;
       }
 
+      selectedCircle = null;
       drawCircle(e.offsetX, e.offsetY);
       clear();
       render();
