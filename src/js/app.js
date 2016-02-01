@@ -9,55 +9,63 @@ var Snap = require('snapsvg');
   var circles = [];
   var lines = [];
 
+  function renderLine(lineInfo) {
+    snap.line(
+      lineInfo.startX,
+      lineInfo.startY,
+      lineInfo.endX,
+      lineInfo.endY
+      )
+      .attr({
+        stroke: "#000",
+        strokeWidth: 4
+      })
+      .click(function (e) {
+        console.log("line clikc!");
+        e.stopPropagation();
+      });
+  }
+
+  function renderCircle(circleInfo) {
+    snap.circle(
+      circleInfo.x,
+      circleInfo.y,
+      CircleRadius
+      )
+      .attr({
+        fill: "#bada55",
+        stroke: "#333",
+        strokeWidth: 1
+      })
+      .data({
+        x: circleInfo.x,
+        y: circleInfo.y
+      })
+      .click(function (e) {
+        var thisCircle = {
+          x: this.data('x'),
+          y: this.data('y')
+        };
+
+        addLineBetweenCircles(lastCircle, thisCircle);
+        lastCircle = thisCircle;
+        render();
+        e.stopPropagation();
+      });
+  }
+
   function render() {
     //Guess what this does :)
     snap.clear();
 
     for (var i in lines) {
       var lineInfo = lines[i];
-      snap.line(
-        lineInfo.startX,
-        lineInfo.startY,
-        lineInfo.endX,
-        lineInfo.endY
-        )
-        .attr({
-          stroke: "#000",
-          strokeWidth: 4
-        })
-        .click(function (e) {
-          console.log("line clikc!");
-          e.stopPropagation();
-        });;
+      renderLine(lineInfo);
     }
 
     for (var i in circles) {
       var circleInfo = circles[i];
-      snap.circle(
-        circleInfo.x,
-        circleInfo.y,
-        CircleRadius
-        )
-        .attr({
-          fill: "#bada55",
-          stroke: "#333",
-          strokeWidth: 1
-        })
-        .data({
-          x: circleInfo.x,
-          y: circleInfo.y
-        })
-        .click(function (e) {
-          var thisCircle = {
-            x: this.data('x'),
-            y: this.data('y')
-          };
-          
-          addLineBetweenCircles(lastCircle, thisCircle);
-          lastCircle = thisCircle;
-          render();
-          e.stopPropagation();
-        });
+      renderCircle(circleInfo);
     }
   }
 
