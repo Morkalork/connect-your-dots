@@ -51,8 +51,8 @@ var _ = require('lodash');
         && l.endY == endY;
     });
   }
-  
-  function dropLine(line){
+
+  function dropLine(line) {
     _.remove(lines, l => {
       return l.startX == line.startX
         && l.startY == line.startY
@@ -100,9 +100,9 @@ var _ = require('lodash');
   };
 
   function dragEnd(e) {
-    
+
     dropLine(lineBeingDragged);
-    
+
     clear();
     renderLine(lastPlaceholder.leftLine);
     renderLine(lastPlaceholder.rightLine);
@@ -120,7 +120,9 @@ var _ = require('lodash');
   };
 
   /**
-   * options = color, opacity, strokeDasharray
+   * @param paper         The SnapSVG paper to draw on
+   * @param linePosition  The positioning information for the line (startX, startY, endX, endY)
+   * @param options       Additional options for the line (strokeColor, opacity, strokeDasharray)
    */
   function renderLine(lineInfo, options) {
     if (!options) {
