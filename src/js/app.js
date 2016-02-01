@@ -1,45 +1,106 @@
 var Snap = require('snapsvg');
+var _ = require('lodash/collection');
 
 (function () {
   const CircleRadius = 8;
   const FillColor = "#bada55";
+  const PlaceholderStrokeColor = "#0098BA";
+  const PlaceholderFillColor = "#A8E0ED";
   const StrokeColor = "#000";
 
   var snap;
   var lastCircle;
-
-  // When drag is called this is true
-  var dragIsCalled = false;
   
-  // The line currently being dragged
+  var relativeLocationX = 0;
+  var relativeLocationY = 0;
+  var dragStartX = 0;
+  var dragStartY = 0;
+
+  var dragIsCalled = false;
   var lineBeingDragged = null;
   
-  // When we drag a line we show a ghostly placeholder to display the new line settings
-  var dragPlaceholder = null;
-
   var circles = [];
   var lines = [];
 
-  function renderDragPlaceholder() {
+  function renderDragPlaceholder(placeHolder) {
+    
+    var placeHolderLineOptions = { 
+      strokeColor: PlaceholderStrokeColor,
+      opacity: 0.5,
+      strokeDasharray: "10,10"
+    };
+    
+    renderLine(placeHolder.leftLine, placeHolderLineOptions);
+    renderLine(placeHolder.rightLine, placeHolderLineOptions);
+    renderCircle(placeHolder.circle, PlaceholderStrokeColor, PlaceholderFillColor, 0.5);
+  };
 
+  function getDraggedLine(t){
+    var startX = t.data('startX');
+    var startY = t.data('startY');
+    var endX = t.data('endX');
+    var endY = t.data('endY');
+    
+    return _.find(lines, l => {
+      return l.startX == startX
+        && l.startY == startY
+        && l.endX == endX
+        && l.endY == endY;
+    });
   }
 
-  function dragMove(e) {
+  function dragMove(xFromStart, yFromStart) {
+    var x = (dragStartX + xFromStart) - relativeLocationX;
+    var y = (dragStartY + yFromStart) - relativeLocationY;
+    
+    
+    var line = getDraggedLine(this);
+    
+    var dragPlaceholder = {
+      leftLine: {
+        startX: line.startCircle.x,
+        startY: line.startCircle.y,
+        endX: x,
+        endY: y
+      },
+      rightLine: {
+        startX: x,
+        startY: y,
+        endX: line.endCircle.x,
+        endY: line.endCircle.y
+      },
+      circle: {
+        x: x,
+        y: y
+      }
+    };
+    
+    clear();
+    renderDragPlaceholder(dragPlaceholder);
+    render();
+  };
 
-  }
-
-  function dragStart(e) {
+  function dragStart(x, y, e) {
+    dragStartX = x;
+    dragStartY = y;
+    console.log(e);
+    
     dragIsCalled = true;
     lineBeingDragged = this;
-
-    console.log(e);
-  }
+  };
 
   function dragEnd(e) {
-    console.log(e);
-  }
+  };
 
-  function renderLine(lineInfo) {
+  /**
+   * options = color, opacity, strokeDasharray
+   */
+  function renderLine(lineInfo, options) {
+    if(!options) {
+      options = {};
+    }
+    
+    console.log(options);
     snap.line(
       lineInfo.startX,
       lineInfo.startY,
@@ -47,21 +108,30 @@ var Snap = require('snapsvg');
       lineInfo.endY
       )
       .attr({
-        stroke: StrokeColor,
-        strokeWidth: 6
+        stroke: options.strokeColor || StrokeColor,
+        strokeWidth: 6,
+        opacity: options.opacity || 1,
+        strokeDasharray: options.strokeDasharray || ""
+      })
+      .data({
+        startX: lineInfo.startX,
+        startY: lineInfo.startY,
+        endX: lineInfo.endX,
+        endY: lineInfo.endY
       })
       .drag(dragMove, dragStart, dragEnd);
-  }
+  };
 
-  function renderCircle(circleInfo) {
+  function renderCircle(circleInfo, fillColor, strokeColor, opacity) {
     snap.circle(
       circleInfo.x,
       circleInfo.y,
       CircleRadius
       )
       .attr({
-        fill: FillColor,
-        stroke: StrokeColor,
+        fill: fillColor || FillColor,
+        opacity: opacity || 1,
+        stroke: strokeColor || StrokeColor,
         strokeWidth: 4
       })
       .data({
@@ -70,7 +140,7 @@ var Snap = require('snapsvg');
       })
       .click(function (e) {
         dragIsCalled = false;
-        
+
         var thisCircle = {
           x: this.data('x'),
           y: this.data('y')
@@ -78,14 +148,19 @@ var Snap = require('snapsvg');
 
         addLineBetweenCircles(lastCircle, thisCircle);
         lastCircle = thisCircle;
+        
+        clear();
         render();
         e.stopPropagation();
       });
+  };
+  
+  function clear(){
+    //Guess what this does :)
+    snap.clear();
   }
 
   function render() {
-    //Guess what this does :)
-    snap.clear();
 
     for (var i in lines) {
       var lineInfo = lines[i];
@@ -96,7 +171,7 @@ var Snap = require('snapsvg');
       var circleInfo = circles[i];
       renderCircle(circleInfo);
     }
-  }
+  };
 
   function setupSnap() {
     snap = Snap("#svg-main");
@@ -108,6 +183,7 @@ var Snap = require('snapsvg');
       }
 
       drawCircle(e.offsetX, e.offsetY);
+      clear();
       render();
     });
   };
@@ -130,11 +206,25 @@ var Snap = require('snapsvg');
     var endX = newCircle.x;
     var endY = newCircle.y;
 
-    var newLine = { startX: startX, startY: startY, endX: endX, endY: endY };
+    var newLine =
+      {
+        startX: startX,
+        startY: startY,
+        endX: endX,
+        endY: endY,
+        startCircle: oldCircle,
+        endCircle: newCircle
+      };
+
     lines.push(newLine);
   };
 
   function init() {
+    var svg = document.getElementById('svg-main');
+    var svgBoundaries = svg.getBoundingClientRect();
+    relativeLocationX = svgBoundaries.left;
+    relativeLocationY = svgBoundaries.top;
+    
     setupSnap();
   };
 
