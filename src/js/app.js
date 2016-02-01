@@ -2,12 +2,42 @@ var Snap = require('snapsvg');
 
 (function () {
   const CircleRadius = 8;
+  const FillColor = "#bada55";
+  const StrokeColor = "#000";
 
   var snap;
   var lastCircle;
 
+  // When drag is called this is true
+  var dragIsCalled = false;
+  
+  // The line currently being dragged
+  var lineBeingDragged = null;
+  
+  // When we drag a line we show a ghostly placeholder to display the new line settings
+  var dragPlaceholder = null;
+
   var circles = [];
   var lines = [];
+
+  function renderDragPlaceholder() {
+
+  }
+
+  function dragMove(e) {
+
+  }
+
+  function dragStart(e) {
+    dragIsCalled = true;
+    lineBeingDragged = this;
+
+    console.log(e);
+  }
+
+  function dragEnd(e) {
+    console.log(e);
+  }
 
   function renderLine(lineInfo) {
     snap.line(
@@ -17,13 +47,10 @@ var Snap = require('snapsvg');
       lineInfo.endY
       )
       .attr({
-        stroke: "#000",
-        strokeWidth: 4
+        stroke: StrokeColor,
+        strokeWidth: 6
       })
-      .click(function (e) {
-        console.log("line clikc!");
-        e.stopPropagation();
-      });
+      .drag(dragMove, dragStart, dragEnd);
   }
 
   function renderCircle(circleInfo) {
@@ -33,15 +60,17 @@ var Snap = require('snapsvg');
       CircleRadius
       )
       .attr({
-        fill: "#bada55",
-        stroke: "#333",
-        strokeWidth: 1
+        fill: FillColor,
+        stroke: StrokeColor,
+        strokeWidth: 4
       })
       .data({
         x: circleInfo.x,
         y: circleInfo.y
       })
       .click(function (e) {
+        dragIsCalled = false;
+        
         var thisCircle = {
           x: this.data('x'),
           y: this.data('y')
@@ -73,6 +102,11 @@ var Snap = require('snapsvg');
     snap = Snap("#svg-main");
 
     snap.click(function (e) {
+      if (dragIsCalled) {
+        dragIsCalled = false;
+        return;
+      }
+
       drawCircle(e.offsetX, e.offsetY);
       render();
     });
