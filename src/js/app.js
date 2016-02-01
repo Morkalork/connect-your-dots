@@ -37,10 +37,26 @@ var Snap = require('snapsvg');
         circleInfo.x,
         circleInfo.y,
         CircleRadius
-        ).attr({
+        )
+        .attr({
           fill: "#bada55",
           stroke: "#333",
           strokeWidth: 1
+        })
+        .data({
+          x: circleInfo.x,
+          y: circleInfo.y
+        })
+        .click(function (e) {
+          var thisCircle = {
+            x: this.data('x'),
+            y: this.data('y')
+          };
+          
+          addLineBetweenCircles(lastCircle, thisCircle);
+          lastCircle = thisCircle;
+          render();
+          e.stopPropagation();
         });
     }
   }
