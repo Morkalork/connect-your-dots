@@ -146,10 +146,10 @@ var arrowFigure = require('./figures/arrow.js');
   };
 
   function renderLineFigure(figure) {
-    switch(figure.type){
+    switch (figure.type) {
       case 'arrow':
-         arrowFigure.draw(figure.options);
-      break;
+        arrowFigure.draw(figure.options);
+        break;
     }
   }
 
@@ -239,12 +239,21 @@ var arrowFigure = require('./figures/arrow.js');
   };
 
   function selectCircle(thisCircle) {
-    selectedCircle = thisCircle;
+    if (selectedCircle) {
+      if(selectedCircle.x === thisCircle.x
+        && selectedCircle.y === thisCircle.y){
+          //We clicked on the currently selected circle, deselect!
+          selectedCircle = null;
+          lastCircle = null;
+          return;
+        }
+    }
 
+    selectedCircle = thisCircle;
     lastCircle = thisCircle;
   }
-  
-  function addLineBetweenCircles(firstCircle, secondCircle){
+
+  function addLineBetweenCircles(firstCircle, secondCircle) {
     addLine(lines, firstCircle, secondCircle);
   }
 
@@ -287,8 +296,8 @@ var arrowFigure = require('./figures/arrow.js');
       var circleInfo = circles[i];
       renderCircle(circleInfo);
     }
-    
-    for (var i in lineFigures){
+
+    for (var i in lineFigures) {
       var figure = lineFigures[i];
       renderLineFigure(figure);
     }
@@ -381,7 +390,7 @@ var arrowFigure = require('./figures/arrow.js');
     relativeLocationY = svgBoundaries.top;
 
     setupSnap();
-    addDEMOFigures();
+    //addDEMOFigures();
     render();
   };
 
