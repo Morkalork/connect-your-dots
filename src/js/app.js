@@ -130,14 +130,12 @@ var addLine = require('./add-line');
     dropLine(lineBeingDragged);
 
     clear();
-    renderLine(lastPlaceholder.leftLine);
-    renderLine(lastPlaceholder.rightLine);
-    renderCircle(lastPlaceholder.circle);
-    render();
 
     lines.push(lastPlaceholder.leftLine);
     lines.push(lastPlaceholder.rightLine);
     circles.push(lastPlaceholder.circle);
+
+    render();
 
     lastCircle = lastPlaceholder.circle;
     lastPlaceholder = null;
@@ -218,7 +216,11 @@ var addLine = require('./add-line');
             removeCircle(thisCircle);
           }
           else {
+            addLine(lines, lastCircle, thisCircle);
             selectCircle(thisCircle);
+
+            clear();
+            render();
           }
         }
 
@@ -229,11 +231,7 @@ var addLine = require('./add-line');
   function selectCircle(thisCircle) {
     selectedCircle = thisCircle;
 
-    addLine(lines, lastCircle, thisCircle);
     lastCircle = thisCircle;
-
-    clear();
-    render();
   }
 
   /**
@@ -266,7 +264,6 @@ var addLine = require('./add-line');
 
   function render() {
 
-    // console.log("Drawing %i lines!", lines.length);
     for (var i in lines) {
       var lineInfo = lines[i];
       renderLine(lineInfo);
@@ -288,14 +285,19 @@ var addLine = require('./add-line');
       }
 
       selectedCircle = null;
-      drawCircle(e.offsetX, e.offsetY);
+      var newCircle = {
+        x: e.offsetX,
+        y: e.offsetY
+      };
+      
+      drawCircle(newCircle);
+      selectCircle(newCircle);
       clear();
       render();
     });
   };
 
-  function drawCircle(x, y) {
-    var newCircle = { x: x, y: y };
+  function drawCircle(newCircle) {
     circles.push(newCircle);
 
     if (lastCircle) {
