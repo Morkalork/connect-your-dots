@@ -5,7 +5,7 @@ var defaultOptions = {
   startX: 0,
   startY: 0,
   
-  //This is where the arrow ends and additional lines are drawn from
+  //This is where the arrow ends (and points to)
   endX: 0,
   endY: 0,
   
@@ -14,7 +14,10 @@ var defaultOptions = {
 
   color: "#000",
 
-  thickness: 1
+  thickness: 1,
+  
+  //The angle the arrow head goes out from the head
+  arrowHeadAngle: 20
 }
 
 function getArrowLength(startX, startY, endX, endY){
@@ -28,7 +31,7 @@ function getArrowLength(startX, startY, endX, endY){
     arrowLength *= -1;
   }
 
-  arrowLength = Math.floor(arrowLength * 0.25);
+  arrowLength = Math.floor(arrowLength * 0.5);
   return arrowLength;
 }
 
@@ -69,11 +72,8 @@ function draw(userOptions) {
     options.endY
     )
     .attr(attributes);
-
+ 
   lines.push(shaft);
-
-  var leansUp = options.startY > options.endY;
-  var leansLeft = options.startX > options.endX;
 
   var arrowLength = getArrowLength(
     options.startX,
@@ -89,24 +89,29 @@ function draw(userOptions) {
     options.endY
   );
 
-  var degreeDiff = 20;
-  
-  var p1X = options.endX;
-  var p1Y = options.endY;
+  var degreeDiff = options.arrowHeadAngle;
   
   var plus = degreesToRadians(angle - degreeDiff);
-  var p2X = (options.endX - (arrowLength * Math.cos(plus)));
-  var p2Y = (options.endY - (arrowLength * Math.sin(plus)));
+  var p1X = (options.endX - (arrowLength * Math.cos(plus)));
+  var p1Y = (options.endY - (arrowLength * Math.sin(plus)));
   
   var minus = degreesToRadians(angle + degreeDiff);
-  var p3X = (options.endX - (arrowLength * Math.cos(minus)));
-  var p3Y = (options.endY - (arrowLength * Math.sin(minus)));
+  var p2X = (options.endX - (arrowLength * Math.cos(minus)));
+  var p2Y = (options.endY - (arrowLength * Math.sin(minus)));
   
-  console.log(p1X, p1Y, p2X, p2Y, p3X, p3Y);
+  /*
+  //Could be useful if you want to create a polygon arrow instead
   var polygon = paper
     .polygon(p1X, p1Y, p2X, p2Y, p3X, p3Y)
     .attr(attributes);
-
+    */
+    
+  var leftLine = paper.line(options.endX, options.endY, p1X, p1Y).attr(attributes);
+  lines.push(leftLine);
+  
+  var rightLine = paper.line(options.endX, options.endY, p2X, p2Y).attr(attributes);
+  lines.push(rightLine);
+  
   return lines;
 }
 

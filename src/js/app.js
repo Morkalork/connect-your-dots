@@ -28,6 +28,7 @@ var arrowFigure = require('./figures/arrow.js');
 
   var circles = [];
   var lines = [];
+  var lineFigures = [];
 
   function renderDragPlaceholder(placeHolder) {
 
@@ -144,6 +145,14 @@ var arrowFigure = require('./figures/arrow.js');
     dragIsCalled = false;
   };
 
+  function renderLineFigure(figure) {
+    switch(figure.type){
+      case 'arrow':
+         arrowFigure.draw(figure.options);
+      break;
+    }
+  }
+
   /**
    * @param linePosition  The positioning information for the line (startX, startY, endX, endY)
    * @param options       Additional options for the line (strokeColor, opacity, strokeDasharray)
@@ -217,7 +226,7 @@ var arrowFigure = require('./figures/arrow.js');
             removeCircle(thisCircle);
           }
           else {
-            addLine(lines, lastCircle, thisCircle);
+            addLineBetweenCircles(lastCircle, thisCircle);
             selectCircle(thisCircle);
 
             clear();
@@ -234,6 +243,10 @@ var arrowFigure = require('./figures/arrow.js');
 
     lastCircle = thisCircle;
   }
+  
+  function addLineBetweenCircles(firstCircle, secondCircle){
+    addLine(lines, firstCircle, secondCircle);
+  }
 
   /**
    * When removing circles you need to reconnect the dots
@@ -249,7 +262,7 @@ var arrowFigure = require('./figures/arrow.js');
 
     if (family.parentCircles.length === 2) {
       // if we have two parents than connect them instead now that they've lost their child...
-      addLine(lines, family.parentCircles[0], family.parentCircles[1]);
+      addLineBetweenCircles(family.parentCircles[0], family.parentCircles[1]);
     }
 
     selectCircle(family.parentCircles[0]);
@@ -274,6 +287,11 @@ var arrowFigure = require('./figures/arrow.js');
       var circleInfo = circles[i];
       renderCircle(circleInfo);
     }
+    
+    for (var i in lineFigures){
+      var figure = lineFigures[i];
+      renderLineFigure(figure);
+    }
   };
 
   function setupSnap() {
@@ -290,20 +308,11 @@ var arrowFigure = require('./figures/arrow.js');
         x: e.offsetX,
         y: e.offsetY
       };
-      
+
       drawCircle(newCircle);
       selectCircle(newCircle);
       clear();
       render();
-    });
-    
-    arrowFigure.draw({
-      startX: 150,
-      startY: 300,
-      endX: 200,
-      endY: 150,
-      paper: paper,
-      thickness: 4
     });
   };
 
@@ -311,13 +320,42 @@ var arrowFigure = require('./figures/arrow.js');
     circles.push(newCircle);
 
     if (lastCircle) {
-      addLine(lines, lastCircle, newCircle);
+      addLineBetweenCircles(lastCircle, newCircle);
     }
 
     lastCircle = newCircle;
   };
 
+  function addDEMOFigures() {
+    var arrow1Options = {
+      type: 'arrow',
+      options: {
+        startX: 150,
+        startY: 100,
+        endX: 200,
+        endY: 250,
+        paper: paper,
+        thickness: 2
+      }
+    };
 
+    lineFigures.push(arrow1Options);
+
+    var arrow2Options = {
+      type: 'arrow',
+      options: {
+        startX: 250,
+        startY: 200,
+        endX: 200,
+        endY: 150,
+        paper: paper,
+        thickness: 6,
+        color: "#0000FF"
+      }
+    };
+
+    lineFigures.push(arrow2Options);
+  }
 
   function init() {
     var svg = document.getElementById('svg-main');
@@ -343,6 +381,8 @@ var arrowFigure = require('./figures/arrow.js');
     relativeLocationY = svgBoundaries.top;
 
     setupSnap();
+    addDEMOFigures();
+    render();
   };
 
   init();
