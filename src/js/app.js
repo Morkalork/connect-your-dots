@@ -2,6 +2,7 @@ var Snap = require('snapsvg');
 var _ = require('lodash');
 var matrixParser = require('./matrix-parser');
 var addLine = require('./add-line');
+var arrowFigure = require('./figures/arrow.js');
 
 (function () {
   const CircleRadius = 8;
@@ -294,6 +295,15 @@ var addLine = require('./add-line');
       selectCircle(newCircle);
       clear();
       render();
+    });
+    
+    arrowFigure.draw({
+      startX: 150,
+      startY: 300,
+      endX: 200,
+      endY: 150,
+      paper: paper,
+      thickness: 4
     });
   };
 
