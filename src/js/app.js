@@ -1,5 +1,7 @@
 var Snap = require('snapsvg');
 var _ = require('lodash');
+var matrixParser = require('./matrix-parser');
+var addLine = require('./add-line');
 
 (function () {
   const CircleRadius = 8;
@@ -21,6 +23,7 @@ var _ = require('lodash');
 
   var dragIsCalled = false;
   var lineBeingDragged = null;
+  var ctrlDown = false;
 
   var circles = [];
   var lines = [];
@@ -32,7 +35,7 @@ var _ = require('lodash');
       opacity: 0.5,
       strokeDasharray: "10,10"
     };
-    
+
     var placeHolderCircleOptions = {
       strokeColor: PlaceholderStrokeColor,
       filleColor: PlaceholderFillColor,
@@ -67,10 +70,10 @@ var _ = require('lodash');
         && l.endY == line.endY;
     });
   };
-  
-  function dropCircle(circle){
+
+  function dropCircle(circle) {
     _.remove(circles, c => {
-      return c.x == circle.x 
+      return c.x == circle.x
         && c.y == circle.y;
     });
   };
@@ -80,12 +83,12 @@ var _ = require('lodash');
     var y = (dragStartY + yFromStart) - relativeLocationY;
 
     lineBeingDragged = getDraggedLine(this);
-    
+
     var newCircle = {
       x: x,
       y: y
     };
-    
+
     var dragPlaceholder = {
       leftLine: {
         startX: lineBeingDragged.startCircle.x,
@@ -119,6 +122,10 @@ var _ = require('lodash');
   };
 
   function dragEnd(e) {
+
+    if (!lineBeingDragged) {
+      return;
+    }
 
     dropLine(lineBeingDragged);
 
@@ -173,15 +180,15 @@ var _ = require('lodash');
    * @param options         Additional options for the circle (fillColor, strokeColor, opacity, strokeDasharray)
    */
   function renderCircle(circlePosition, options) {
-    if(!options){
+    if (!options) {
       options = {};
     }
-    
-    if(selectedCircle && 
-    (selectedCircle.x === circlePosition.x && selectedCircle.y === circlePosition.y)){
+
+    if (selectedCircle &&
+      (selectedCircle.x === circlePosition.x && selectedCircle.y === circlePosition.y)) {
       options.strokeColor = SelectedStrokeColor;
     }
-    
+
     paper.circle(
       circlePosition.x,
       circlePosition.y,
@@ -205,17 +212,52 @@ var _ = require('lodash');
           x: this.data('x'),
           y: this.data('y')
         };
-        
-        selectedCircle = thisCircle;
-        
-        addLineBetweenCircles(lastCircle, thisCircle);
-        lastCircle = thisCircle;
 
-        clear();
-        render();
+        if (e.which === 1) {    //Left button
+          if (ctrlDown) {
+            removeCircle(thisCircle);
+          }
+          else {
+            selectCircle(thisCircle);
+          }
+        }
+
         e.stopPropagation();
       });
   };
+
+  function selectCircle(thisCircle) {
+    selectedCircle = thisCircle;
+
+    addLine(lines, lastCircle, thisCircle);
+    lastCircle = thisCircle;
+
+    clear();
+    render();
+  }
+
+  /**
+   * When removing circles you need to reconnect the dots
+   */
+  function removeCircle(thisCircle) {
+    var family = matrixParser.findCircleParents(lines, circles, thisCircle);
+
+    dropCircle(thisCircle);
+
+    _.forEach(family.connectedLines, line => {
+      dropLine(line);
+    });
+
+    if (family.parentCircles.length === 2) {
+      // if we have two parents than connect them instead now that they've lost their child...
+      addLine(lines, family.parentCircles[0], family.parentCircles[1]);
+    }
+
+    selectCircle(family.parentCircles[0]);
+
+    clear();
+    render();
+  }
 
   function clear() {
     //Guess what this does :)
@@ -224,6 +266,7 @@ var _ = require('lodash');
 
   function render() {
 
+    // console.log("Drawing %i lines!", lines.length);
     for (var i in lines) {
       var lineInfo = lines[i];
       renderLine(lineInfo);
@@ -256,34 +299,33 @@ var _ = require('lodash');
     circles.push(newCircle);
 
     if (lastCircle) {
-      addLineBetweenCircles(lastCircle, newCircle);
+      addLine(lines, lastCircle, newCircle);
     }
 
     lastCircle = newCircle;
   };
 
-  function addLineBetweenCircles(oldCircle, newCircle) {
-    var startX = oldCircle.x;
-    var startY = oldCircle.y;
 
-    var endX = newCircle.x;
-    var endY = newCircle.y;
-
-    var newLine =
-      {
-        startX: startX,
-        startY: startY,
-        endX: endX,
-        endY: endY,
-        startCircle: oldCircle,
-        endCircle: newCircle
-      };
-
-    lines.push(newLine);
-  };
 
   function init() {
     var svg = document.getElementById('svg-main');
+    svg
+    .oncontextmenu = function (e) {
+      e.preventDefault(); // Be gone with ye!
+      return false;
+    }
+
+    window.addEventListener('keydown', function (e) {
+      if (e.keyCode === 17) {
+        ctrlDown = true;
+      }
+    })
+    addEventListener('keyup', function (e) {
+      if (e.keyCode === 17) {
+        ctrlDown = false;
+      }
+    });
+
     var svgBoundaries = svg.getBoundingClientRect();
     relativeLocationX = svgBoundaries.left;
     relativeLocationY = svgBoundaries.top;
