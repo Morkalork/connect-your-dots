@@ -268,12 +268,10 @@ var arrowFigure = require('./figures/arrow.js');
       dropLine(line);
     });
 
-    console.log(lines);
     if (family.parentCircles.length >= 2) {
       // if we have two parents than connect them instead now that they've lost their child...
       addLineBetweenCircles(family.parentCircles[0], family.parentCircles[1]);
     }
-    console.log(lines);
 
     selectCircle(family.parentCircles[0]);
 
@@ -288,7 +286,6 @@ var arrowFigure = require('./figures/arrow.js');
 
   function render() {
 
-    console.log("Render lines: ", lines);
     for (var i in lines) {
       var lineInfo = lines[i];
       renderLine(lineInfo);
@@ -315,7 +312,6 @@ var arrowFigure = require('./figures/arrow.js');
       }
       
       if(e.which === 2){
-        console.log(e.offsetX, e.offsetY);
         return;
       }
 
