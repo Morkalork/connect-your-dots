@@ -3,7 +3,6 @@ var doesLineExist = require('../does-line-exist');
 function addLineBetweenCircles(lines, oldCircle, newCircle) {
   
   if(doesLineExist(lines, newCircle, oldCircle)){
-    console.log("not adding line!");
     return;
   }
 

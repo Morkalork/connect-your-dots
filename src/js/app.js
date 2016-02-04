@@ -3,6 +3,7 @@ var _ = require('lodash');
 var matrixParser = require('./matrix-parser');
 var addLine = require('./add-line');
 var arrowFigure = require('./figures/arrow.js');
+var findPolygons = require('./find-polygons');
 
 (function () {
   const CircleRadius = 8;
@@ -29,6 +30,7 @@ var arrowFigure = require('./figures/arrow.js');
   var circles = [];
   var lines = [];
   var lineFigures = [];
+  var polygons = [];
 
   function renderDragPlaceholder(placeHolder) {
 
@@ -152,6 +154,21 @@ var arrowFigure = require('./figures/arrow.js');
         break;
     }
   }
+  
+  function renderPolygon(polygon, options){
+    if(!options){
+      options = {};
+    }
+    
+    paper.polygon(polygon)
+      .attr({
+        stroke: options.strokeColor || StrokeColor,
+        strokeWidth: 6,
+      })
+      .click(function(e){
+        console.log(e);
+      });
+  }
 
   /**
    * @param linePosition  The positioning information for the line (startX, startY, endX, endY)
@@ -229,6 +246,14 @@ var arrowFigure = require('./figures/arrow.js');
             addLineBetweenCircles(lastCircle, thisCircle);
             selectCircle(thisCircle);
 
+            var drawings = findPolygons(circles, lines);
+            
+            if(drawings.length > 0){
+              _.forEach(drawings, drawing => {
+                convertDrawingToPolygon(drawing);
+              });
+            }
+
             clear();
             render();
           }
@@ -237,6 +262,24 @@ var arrowFigure = require('./figures/arrow.js');
         e.stopPropagation();
       });
   };
+  
+  function convertDrawingToPolygon(polygonCircles){
+    
+    var polygonArray = [];
+    _.forEach(polygonCircles, circle => {
+      polygonArray.push(circle.x, circle.y);
+    });
+    
+    polygons.push(polygonArray);
+    
+    console.log(polygons);
+    var polygonLines = matrixParser.getLinesForCircles(polygonCircles, lines);
+    lines = _.difference(lines, polygonLines);
+    circles = _.difference(circles, polygonCircles);
+    
+    clear();
+    render();
+  }
 
   function selectCircle(thisCircle) {
     if (selectedCircle) {
@@ -286,20 +329,21 @@ var arrowFigure = require('./figures/arrow.js');
 
   function render() {
 
-    for (var i in lines) {
-      var lineInfo = lines[i];
+    _.forEach(lines, lineInfo => {
       renderLine(lineInfo);
-    }
+    });
 
-    for (var i in circles) {
-      var circleInfo = circles[i];
+    _.forEach(circles, circleInfo => {
       renderCircle(circleInfo);
-    }
+    });
 
-    for (var i in lineFigures) {
-      var figure = lineFigures[i];
+    _.forEach(lineFigures, figure => {
       renderLineFigure(figure);
-    }
+    });
+    
+    _.forEach(polygons, polygon => {
+      renderPolygon(polygon);
+    });
   };
 
   function setupSnap() {

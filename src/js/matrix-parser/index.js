@@ -1,6 +1,26 @@
 var _ = require('lodash');
 
 /**
+ * Fetches all the lines between a set of circles
+ */
+function getLinesForCircles(circles, allLines) {
+  var lines = [];
+
+  _.forEach(circles, circle => {
+    var linesConnected = _.filter(lines, line => {
+      return (line.startX === circle.x && line.startY === circle.y)
+        ||
+        (line.endX === circle.x && line.endY === circle.y);
+    });
+
+    var newLines = _.difference(linesConnected, lines);
+    lines = lines.concat(newLines);
+  });
+  
+  return lines;
+}
+
+/**
  * Locates the parent circles of a circle
  * 
  * 
@@ -9,16 +29,16 @@ var _ = require('lodash');
  *                       | 
  *                       |        
  * (*)------------------(*)-------------------(*)
- *  |                      \                    |
- *  |                      |                    |
- *  |                      |                    |
- *  parent                 |                  parent
- *                         |
+ *  |                    |                     |
+ *  |                    |                     |
+ *  |                    |                     |
+ *  parent               |                   parent
+ *                      (*)
  *                    parent
  * 
  */
 function findCircleParents(lines, circles, selectedCircle) {
-  
+
   var connectedLines = _.filter(lines, line => {
     return (line.endX === selectedCircle.x && line.endY === selectedCircle.y)
       ||
@@ -30,11 +50,11 @@ function findCircleParents(lines, circles, selectedCircle) {
   if (connectedLines && connectedLines.length > 0) {
     _.forEach(connectedLines, line => {
       var connectedCircle = _.filter(circles, circle => {
-        
-        if(circle.x === selectedCircle.x && circle.y === selectedCircle.y){
+
+        if (circle.x === selectedCircle.x && circle.y === selectedCircle.y) {
           return false; //We don't want the one we're removing
         }
-        
+
         return (circle.x === line.startX && circle.y === line.startY)
           ||
           (circle.x === line.endX && circle.y === line.endY);
@@ -53,5 +73,6 @@ function findCircleParents(lines, circles, selectedCircle) {
 }
 
 module.exports = {
-  findCircleParents: findCircleParents
+  findCircleParents: findCircleParents,
+  getLinesForCircles: getLinesForCircles
 };
