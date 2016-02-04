@@ -7,6 +7,7 @@ var arrowFigure = require('./figures/arrow.js');
 var findPolygons = require('./find-polygons');
 var dropLine = require('./drop-line');
 var dropCircle = require('./drop-circle');
+var renderer = require('./renderer');
 
 (function () {
   const CircleRadius = 8;
@@ -141,51 +142,6 @@ var dropCircle = require('./drop-circle');
         break;
     }
   }
-  
-  function renderPolygon(polygon, options){
-    if(!options){
-      options = {};
-    }
-    
-    paper.polygon(polygon)
-      .attr({
-        stroke: options.strokeColor || StrokeColor,
-        strokeWidth: 6,
-      })
-      .click(function(e){
-        console.log(e);
-      });
-  }
-
-  /**
-   * @param linePosition  The positioning information for the line (startX, startY, endX, endY)
-   * @param options       Additional options for the line (strokeColor, opacity, strokeDasharray)
-   */
-  function renderLine(linePosition, options) {
-    if (!options) {
-      options = {};
-    }
-
-    paper.line(
-      linePosition.startX,
-      linePosition.startY,
-      linePosition.endX,
-      linePosition.endY
-      )
-      .attr({
-        stroke: options.strokeColor || StrokeColor,
-        strokeWidth: 6,
-        opacity: options.opacity || 1,
-        strokeDasharray: options.strokeDasharray || ""
-      })
-      .data({
-        startX: linePosition.startX,
-        startY: linePosition.startY,
-        endX: linePosition.endX,
-        endY: linePosition.endY
-      })
-      .drag(dragMove, dragStart, dragEnd);
-  };
 
   /**
    * @param circlePosition  The positioning information for the circle (x, y)
@@ -316,8 +272,14 @@ var dropCircle = require('./drop-circle');
 
   function render() {
 
-    _.forEach(lines, lineInfo => {
-      renderLine(lineInfo);
+    _.forEach(lines, line => {
+      renderer.line({
+        paper: paper,
+        line: line,
+        dragMove: dragMove,
+        dragStart: dragStart,
+        dragEnd: dragEnd
+      });
     });
 
     _.forEach(circles, circleInfo => {
@@ -329,7 +291,7 @@ var dropCircle = require('./drop-circle');
     });
     
     _.forEach(polygons, polygon => {
-      renderPolygon(polygon);
+      renderer.polygon(paper, polygon);
     });
   };
 
