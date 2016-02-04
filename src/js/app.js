@@ -1,10 +1,12 @@
 var Snap = require('snapsvg');
 var _ = require('lodash');
+
 var matrixParser = require('./matrix-parser');
 var addLine = require('./add-line');
 var arrowFigure = require('./figures/arrow.js');
 var findPolygons = require('./find-polygons');
 var dropLine = require('./drop-line');
+var dropCircle = require('./drop-circle');
 
 (function () {
   const CircleRadius = 8;
@@ -64,13 +66,6 @@ var dropLine = require('./drop-line');
         && l.startY == startY
         && l.endX == endX
         && l.endY == endY;
-    });
-  };
-
-  function dropCircle(circle) {
-    _.remove(circles, c => {
-      return c.x == circle.x
-        && c.y == circle.y;
     });
   };
 
@@ -297,7 +292,7 @@ var dropLine = require('./drop-line');
    */
   function removeCircle(thisCircle) {
     var family = matrixParser.findCircleParents(lines, circles, thisCircle);
-    dropCircle(thisCircle);
+    dropCircle(thisCircle, circles);
 
     _.forEach(family.connectedLines, line => {
       dropLine(line, lines);
