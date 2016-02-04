@@ -3,6 +3,7 @@ var extend = require('../utilities/extend.js');
 var defaultRenderingAttributes = {
   stroke: "#000",
   strokeWidth: 6,
+  fill: "#FF0000",
   opacity: 1,
   strokeDasharray: ""
 };
@@ -52,7 +53,41 @@ function renderLine(userOptions) {
       );
 }
 
+var circleRenderingOptions = {
+  paper: null,
+  circle: null,
+  radius: 8,
+  attributes: defaultRenderingAttributes,
+  onClick: null
+}
+
+function renderCircle(customOptions){
+  
+  var options = extend(circleRenderingOptions, customOptions);
+  
+  var circle = options.circle;
+  
+  options.paper.circle(
+      circle.x,
+      circle.y,
+      options.radius
+      )
+      .attr(options.attributes)
+      .data({
+        x: circle.x,
+        y: circle.y
+      })
+      .click(function (e) {
+        if(options.onClick){
+          options.onClick(this, e);
+        }
+
+        e.stopPropagation();
+      });
+}
+
 module.exports = {
   polygon: renderPolygon,
-  line: renderLine
-}
+  line: renderLine,
+  circle: renderCircle
+};

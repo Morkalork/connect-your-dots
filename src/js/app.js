@@ -36,6 +36,28 @@ var renderer = require('./renderer');
   var lineFigures = [];
   var polygons = [];
 
+  /**
+   * Rendering options
+   */
+  var lineOptions = {
+    paper: null,
+    line: null,
+    dragMove: dragMove,
+    dragStart: dragStart,
+    dragEnd: dragEnd
+  };
+
+  var circleOptions = {
+    paper: null,
+    circle: null,
+    radius: CircleRadius,
+    attributes: {
+      stroke: StrokeColor,
+      fill: FillColor
+    },
+    onClick: circleClick
+  };
+
   function renderDragPlaceholder(placeHolder) {
 
     var placeHolderLineOptions = {
@@ -101,7 +123,7 @@ var renderer = require('./renderer');
       circle: newCircle
     };
 
-    clear();
+    paper.clear();
     renderDragPlaceholder(dragPlaceholder);
     render();
   };
@@ -121,7 +143,7 @@ var renderer = require('./renderer');
 
     dropLine(lineBeingDragged, lines);
 
-    clear();
+    paper.clear();
 
     lines.push(lastPlaceholder.leftLine);
     lines.push(lastPlaceholder.rightLine);
@@ -143,96 +165,65 @@ var renderer = require('./renderer');
     }
   }
 
-  /**
-   * @param circlePosition  The positioning information for the circle (x, y)
-   * @param options         Additional options for the circle (fillColor, strokeColor, opacity, strokeDasharray)
-   */
-  function renderCircle(circlePosition, options) {
-    if (!options) {
-      options = {};
-    }
+  function circleClick(t, e) {
+    dragIsCalled = false;
 
-    if (selectedCircle &&
-      (selectedCircle.x === circlePosition.x && selectedCircle.y === circlePosition.y)) {
-      options.strokeColor = SelectedStrokeColor;
-    }
+    var thisCircle = {
+      x: t.data('x'),
+      y: t.data('y')
+    };
 
-    paper.circle(
-      circlePosition.x,
-      circlePosition.y,
-      CircleRadius
-      )
-      .attr({
-        fill: options.fillColor || FillColor,
-        opacity: options.opacity || 1,
-        stroke: options.strokeColor || StrokeColor,
-        strokeWidth: 4,
-        strokeDasharray: options.strokeDasharray || ""
-      })
-      .data({
-        x: circlePosition.x,
-        y: circlePosition.y
-      })
-      .click(function (e) {
-        dragIsCalled = false;
+    if (e.which === 1) {    //Left button
+      if (ctrlDown) {
+        removeCircle(thisCircle);
+      }
+      else {
+        addLineBetweenCircles(lastCircle, thisCircle);
+        selectCircle(thisCircle);
 
-        var thisCircle = {
-          x: this.data('x'),
-          y: this.data('y')
-        };
+        var drawings = findPolygons(circles, lines);
 
-        if (e.which === 1) {    //Left button
-          if (ctrlDown) {
-            removeCircle(thisCircle);
-          }
-          else {
-            addLineBetweenCircles(lastCircle, thisCircle);
-            selectCircle(thisCircle);
+        if (drawings.length > 0) {
+          _.forEach(drawings, drawing => {
+            convertDrawingToPolygon(drawing);
+          });
 
-            var drawings = findPolygons(circles, lines);
-            
-            if(drawings.length > 0){
-              _.forEach(drawings, drawing => {
-                convertDrawingToPolygon(drawing);
-              });
-            }
-
-            clear();
-            render();
-          }
+          selectedCircle = null;
+          lastCircle = null;
         }
 
-        e.stopPropagation();
-      });
+        paper.clear();
+        render();
+      }
+    }
   };
-  
-  function convertDrawingToPolygon(polygonCircles){
-    
+
+  function convertDrawingToPolygon(polygonCircles) {
+
     var polygonArray = [];
     _.forEach(polygonCircles, circle => {
       polygonArray.push(circle.x, circle.y);
     });
-    
+
     polygons.push(polygonArray);
-    
-    console.log(polygons);
+
     var polygonLines = matrixParser.getLinesForCircles(polygonCircles, lines);
     lines = _.difference(lines, polygonLines);
     circles = _.difference(circles, polygonCircles);
-    
-    clear();
+
+    paper.clear();
     render();
   }
 
   function selectCircle(thisCircle) {
     if (selectedCircle) {
-      if(selectedCircle.x === thisCircle.x
-        && selectedCircle.y === thisCircle.y){
-          //We clicked on the currently selected circle, deselect!
-          selectedCircle = null;
-          lastCircle = null;
-          return;
-        }
+      if (selectedCircle.x === thisCircle.x
+        && selectedCircle.y === thisCircle.y) {
+        //We clicked on the currently selected circle, deselect!
+        selectedCircle = null;
+        lastCircle = null;
+        return;
+      }
     }
 
     selectedCircle = thisCircle;
@@ -261,35 +252,32 @@ var renderer = require('./renderer');
 
     selectCircle(family.parentCircles[0]);
 
-    clear();
-    render();
-  }
-
-  function clear() {
-    //Guess what this does :)
     paper.clear();
+    render();
   }
 
   function render() {
 
     _.forEach(lines, line => {
-      renderer.line({
-        paper: paper,
-        line: line,
-        dragMove: dragMove,
-        dragStart: dragStart,
-        dragEnd: dragEnd
-      });
+      lineOptions.line = line;
+      renderer.line(lineOptions);
     });
 
-    _.forEach(circles, circleInfo => {
-      renderCircle(circleInfo);
+    _.forEach(circles, circle => {
+      circleOptions.circle = circle;
+
+      if (selectedCircle &&
+        (selectedCircle.x === circle.x && selectedCircle.y === circle.y)) {
+        circleOptions.stroke = SelectedStrokeColor;
+      }
+
+      renderer.circle(circleOptions);
     });
 
     _.forEach(lineFigures, figure => {
       renderLineFigure(figure);
     });
-    
+
     _.forEach(polygons, polygon => {
       renderer.polygon(paper, polygon);
     });
@@ -298,13 +286,16 @@ var renderer = require('./renderer');
   function setupSnap() {
     paper = Snap("#svg-main");
 
+    lineOptions.paper = paper;
+    circleOptions.paper = paper;
+
     paper.click(function (e) {
       if (dragIsCalled) {
         dragIsCalled = false;
         return;
       }
-      
-      if(e.which === 2){
+
+      if (e.which === 2) {
         return;
       }
 
@@ -316,7 +307,7 @@ var renderer = require('./renderer');
 
       drawCircle(newCircle);
       selectCircle(newCircle);
-      clear();
+      paper.clear();
       render();
     });
   };
