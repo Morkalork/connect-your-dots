@@ -4,6 +4,7 @@ var matrixParser = require('./matrix-parser');
 var addLine = require('./add-line');
 var arrowFigure = require('./figures/arrow.js');
 var findPolygons = require('./find-polygons');
+var dropLine = require('./drop-line');
 
 (function () {
   const CircleRadius = 8;
@@ -66,15 +67,6 @@ var findPolygons = require('./find-polygons');
     });
   };
 
-  function dropLine(line) {
-    _.remove(lines, l => {
-      return l.startX == line.startX
-        && l.startY == line.startY
-        && l.endX == line.endX
-        && l.endY == line.endY;
-    });
-  };
-
   function dropCircle(circle) {
     _.remove(circles, c => {
       return c.x == circle.x
@@ -131,7 +123,7 @@ var findPolygons = require('./find-polygons');
       return;
     }
 
-    dropLine(lineBeingDragged);
+    dropLine(lineBeingDragged, lines);
 
     clear();
 
@@ -308,7 +300,7 @@ var findPolygons = require('./find-polygons');
     dropCircle(thisCircle);
 
     _.forEach(family.connectedLines, line => {
-      dropLine(line);
+      dropLine(line, lines);
     });
 
     if (family.parentCircles.length >= 2) {
