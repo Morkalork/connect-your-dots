@@ -7,55 +7,47 @@ var _ = require('lodash');
  * 
  *                selectedCircle
  *                       | 
- *      left line        |        right line
+ *                       |        
  * (*)------------------(*)-------------------(*)
- *  |                                          |
- *  |                                          |
- *  Left parent                       Right parent
- * 
+ *  |                      \                    |
+ *  |                      |                    |
+ *  |                      |                    |
+ *  parent                 |                  parent
+ *                         |
+ *                    parent
  * 
  */
 function findCircleParents(lines, circles, selectedCircle) {
-  var parentLines = [];
   
-  var leftLine = _.find(lines, line => {
-    return (line.endX === selectedCircle.x
-      && line.endY === selectedCircle.y)
-  });
-
-  var rightLine = _.find(lines, line => {
-    return (line.startX === selectedCircle.x
-      && line.startY === selectedCircle.y)
+  var connectedLines = _.filter(lines, line => {
+    return (line.endX === selectedCircle.x && line.endY === selectedCircle.y)
+      ||
+      (line.startX === selectedCircle.x && line.startY === selectedCircle.y);
   });
 
   var parentCircles = [];
 
-  if (leftLine) {
-    parentLines.push(leftLine);
-    
-    var leftParentCircle = _.find(circles, circle => {
-      return circle.x === leftLine.startX && circle.y === leftLine.startY;
+  if (connectedLines && connectedLines.length > 0) {
+    _.forEach(connectedLines, line => {
+      var connectedCircle = _.filter(circles, circle => {
+        
+        if(circle.x === selectedCircle.x && circle.y === selectedCircle.y){
+          return false; //We don't want the one we're removing
+        }
+        
+        return (circle.x === line.startX && circle.y === line.startY)
+          ||
+          (circle.x === line.endX && circle.y === line.endY);
+      });
+
+      if (connectedCircle) {
+        parentCircles = parentCircles.concat(connectedCircle);
+      }
     });
-    
-    if(leftParentCircle){
-      parentCircles.push(leftParentCircle);
-    }
-  }
-  
-  if(rightLine){
-    parentLines.push(rightLine);
-    
-    var rightParentCircle = _.find(circles, circle => {
-      return circle.x === rightLine.endX && circle.y === rightLine.endY;
-    });
-    
-    if(rightParentCircle){
-      parentCircles.push(rightParentCircle);
-    }
   }
 
   return {
-    connectedLines: parentLines,
+    connectedLines: connectedLines,
     parentCircles: parentCircles
   };
 }
