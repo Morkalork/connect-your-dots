@@ -9,8 +9,8 @@ var findPolygons = require('./find-polygons');
 var dropLine = require('./drop-line');
 var dropCircle = require('./drop-circle');
 var renderer = require('./renderer');
-var polygonMove = require('./figures/polygon/move.js');
 var guidGenerator = require('./utilities/guid-generator.js');
+var getDraggedLine = require('./get-dragged-line');
 
 (function () {
   const CircleRadius = 8;
@@ -46,14 +46,14 @@ var guidGenerator = require('./utilities/guid-generator.js');
     fill: "#bada55",
     id: ""
   };
-  
+
   var lineOptions = {
     paper: null,
     line: null,
     attributes: customAttributes,
-    dragMove: dragMove,
-    dragStart: dragStart,
-    dragEnd: dragEnd
+    dragMove: lineMove,
+    dragStart: lineMoveStart,
+    dragEnd: lineMoveEnd
   };
 
   var circleOptions = {
@@ -68,61 +68,40 @@ var guidGenerator = require('./utilities/guid-generator.js');
     paper: null,
     polygon: null,
     attributes: customAttributes,
-    dragMove: polygonMove.move,
-    dragStart: polygonMove.start,
-    dragEnd: polygonMove.stop
+    dragMove: polygonMove,
+    dragStart: polygonMoveStart,
+    dragEnd: polygonMoveStop
   }
 
-  function renderDragPlaceholder(placeHolder) {
-
-    var newLineOptions = {
-      paper: paper,
-      strokeColor: PlaceholderStrokeColor,
-      opacity: 0.5,
-      strokeDasharray: "10,10",
-    };
-    
-    var lineOptions = extend(lineOptions, newLineOptions);
-
-    lineOptions.line = placeHolder.leftLine;
-    renderer.line(lineOptions);
-    
-    lineOptions.line = placeHolder.rightLine;
-    renderer.line(lineOptions);
-
-    var placeHolderCircleOptions = {
-      paper: paper,
-      strokeColor: PlaceholderStrokeColor,
-      filleColor: PlaceholderFillColor,
-      opacity: 0.5,
-      circle: placeHolder.circle
-    };
-    
-    var circleOption = extend(circleOption, placeHolderCircleOptions);
-    
-    renderer.circle(circleOption);
-    lastPlaceholder = placeHolder;
+  /**
+   * Event handlers
+   */
+  function polygonMoveStart() {
+    this.data('originalTransform', this.transform().local);
   };
 
-  function getDraggedLine(t) {
-    var startX = t.data('startX');
-    var startY = t.data('startY');
-    var endX = t.data('endX');
-    var endY = t.data('endY');
+  function polygonMoveStop() {
+    var transformString = this.attr('transform').string.substring(1); // Remove the first character
+    var transformSplit = transformString.split(',');
+    var coords = {
+      x: parseInt(transformSplit[0]),
+      y: parseInt(transformSplit[1])
+    };
+  };
 
-    return _.find(lines, l => {
-      return l.startX == startX
-        && l.startY == startY
-        && l.endX == endX
-        && l.endY == endY;
+  function polygonMove(dx, dy) {
+    var originalTransform = this.data('originalTransform');
+    var extraTransform = (originalTransform ? "T" : "t") + [dx, dy];
+    this.attr({
+      transform: originalTransform + extraTransform
     });
   };
-
-  function dragMove(xFromStart, yFromStart) {
+  
+  function lineMove(xFromStart, yFromStart) {
     var x = (dragStartX + xFromStart) - relativeLocationX;
     var y = (dragStartY + yFromStart) - relativeLocationY;
 
-    lineBeingDragged = getDraggedLine(this);
+    lineBeingDragged = getDraggedLine(this, lines);
 
     var newCircle = {
       x: x,
@@ -154,14 +133,14 @@ var guidGenerator = require('./utilities/guid-generator.js');
     render();
   };
 
-  function dragStart(x, y, e) {
+  function lineMoveStart(x, y, e) {
     dragStartX = x;
     dragStartY = y;
 
     dragIsCalled = true;
   };
 
-  function dragEnd(e) {
+  function lineMoveEnd(e) {
 
     if (!lineBeingDragged) {
       return;
@@ -182,6 +161,41 @@ var guidGenerator = require('./utilities/guid-generator.js');
     lineBeingDragged = null;
     dragIsCalled = false;
   };
+
+  /**
+   * Business
+   */
+  function renderDragPlaceholder(placeHolder) {
+
+    var newLineOptions = {
+      paper: paper,
+      strokeColor: PlaceholderStrokeColor,
+      opacity: 0.5,
+      strokeDasharray: "10,10",
+    };
+
+    var lineOptions = extend(lineOptions, newLineOptions);
+
+    lineOptions.line = placeHolder.leftLine;
+    renderer.line(lineOptions);
+
+    lineOptions.line = placeHolder.rightLine;
+    renderer.line(lineOptions);
+
+    var placeHolderCircleOptions = {
+      paper: paper,
+      strokeColor: PlaceholderStrokeColor,
+      filleColor: PlaceholderFillColor,
+      opacity: 0.5,
+      circle: placeHolder.circle
+    };
+
+    var circleOption = extend(circleOption, placeHolderCircleOptions);
+
+    renderer.circle(circleOption);
+    lastPlaceholder = placeHolder;
+  };
+
 
   function renderLineFigure(figure) {
     switch (figure.type) {
@@ -230,12 +244,12 @@ var guidGenerator = require('./utilities/guid-generator.js');
     _.forEach(polygonCircles, circle => {
       polygonArray.push(circle.x, circle.y);
     });
-    
+
     var polygon = {
       id: guidGenerator.run(),
       coordinates: polygonArray
     };
-    
+
     polygons.push(polygon);
 
     var polygonLines = matrixParser.getLinesForCircles(polygonCircles, lines);
