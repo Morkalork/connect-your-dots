@@ -1,6 +1,7 @@
 var Snap = require('snapsvg');
 var _ = require('lodash');
 
+var extend = require('./utilities/extend');
 var matrixParser = require('./matrix-parser');
 var addLine = require('./add-line');
 var arrowFigure = require('./figures/arrow.js');
@@ -8,13 +9,13 @@ var findPolygons = require('./find-polygons');
 var dropLine = require('./drop-line');
 var dropCircle = require('./drop-circle');
 var renderer = require('./renderer');
+var polygonMove = require('./figures/polygon/move.js');
+var guidGenerator = require('./utilities/guid-generator.js');
 
 (function () {
   const CircleRadius = 8;
-  const FillColor = "#bada55";
   const PlaceholderStrokeColor = "#0098BA";
   const PlaceholderFillColor = "#A8E0ED";
-  const StrokeColor = "#000";
   const SelectedStrokeColor = "#FF0000";
 
   var paper;
@@ -39,9 +40,17 @@ var renderer = require('./renderer');
   /**
    * Rendering options
    */
+  var customAttributes = {
+    stroke: "#000",
+    strokeWidth: 8,
+    fill: "#bada55",
+    id: ""
+  };
+  
   var lineOptions = {
     paper: null,
     line: null,
+    attributes: customAttributes,
     dragMove: dragMove,
     dragStart: dragStart,
     dragEnd: dragEnd
@@ -51,30 +60,47 @@ var renderer = require('./renderer');
     paper: null,
     circle: null,
     radius: CircleRadius,
-    attributes: {
-      stroke: StrokeColor,
-      fill: FillColor
-    },
+    attributes: customAttributes,
     onClick: circleClick
   };
 
+  var polygonOptions = {
+    paper: null,
+    polygon: null,
+    attributes: customAttributes,
+    dragMove: polygonMove.move,
+    dragStart: polygonMove.start,
+    dragEnd: polygonMove.stop
+  }
+
   function renderDragPlaceholder(placeHolder) {
 
-    var placeHolderLineOptions = {
+    var newLineOptions = {
+      paper: paper,
       strokeColor: PlaceholderStrokeColor,
       opacity: 0.5,
-      strokeDasharray: "10,10"
+      strokeDasharray: "10,10",
     };
+    
+    var lineOptions = extend(lineOptions, newLineOptions);
+
+    lineOptions.line = placeHolder.leftLine;
+    renderer.line(lineOptions);
+    
+    lineOptions.line = placeHolder.rightLine;
+    renderer.line(lineOptions);
 
     var placeHolderCircleOptions = {
+      paper: paper,
       strokeColor: PlaceholderStrokeColor,
       filleColor: PlaceholderFillColor,
-      opacity: 0.5
+      opacity: 0.5,
+      circle: placeHolder.circle
     };
-
-    renderLine(placeHolder.leftLine, placeHolderLineOptions);
-    renderLine(placeHolder.rightLine, placeHolderLineOptions);
-    renderCircle(placeHolder.circle, placeHolderCircleOptions);
+    
+    var circleOption = extend(circleOption, placeHolderCircleOptions);
+    
+    renderer.circle(circleOption);
     lastPlaceholder = placeHolder;
   };
 
@@ -204,8 +230,13 @@ var renderer = require('./renderer');
     _.forEach(polygonCircles, circle => {
       polygonArray.push(circle.x, circle.y);
     });
-
-    polygons.push(polygonArray);
+    
+    var polygon = {
+      id: guidGenerator.run(),
+      coordinates: polygonArray
+    };
+    
+    polygons.push(polygon);
 
     var polygonLines = matrixParser.getLinesForCircles(polygonCircles, lines);
     lines = _.difference(lines, polygonLines);
@@ -279,7 +310,10 @@ var renderer = require('./renderer');
     });
 
     _.forEach(polygons, polygon => {
-      renderer.polygon(paper, polygon);
+      polygonOptions.polygon = polygon.coordinates;
+      var attributes = extend({}, customAttributes); //shallow clone
+      attributes.id = polygon.id;
+      renderer.polygon(polygonOptions, attributes);
     });
   };
 
@@ -288,6 +322,7 @@ var renderer = require('./renderer');
 
     lineOptions.paper = paper;
     circleOptions.paper = paper;
+    polygonOptions.paper = paper;
 
     paper.click(function (e) {
       if (dragIsCalled) {

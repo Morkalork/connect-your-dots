@@ -8,27 +8,38 @@ var defaultRenderingAttributes = {
   strokeDasharray: ""
 };
 
-function renderPolygon(paper, polygon, customAttributes) {
+var polygonRenderingOptions = {
+  paper: null,
+  polygon: null,
+  dragMove: null,
+  dragStart: null,
+  dragStop: null
+};
 
+function renderPolygon(customOptions, customAttributes) {
   var attributes = extend(defaultRenderingAttributes, customAttributes);
+  var options = extend(polygonRenderingOptions, customOptions);
 
-  paper.polygon(polygon)
+  options.paper
+    .polygon(options.polygon)
     .attr(attributes)
-    .click(function (e) {
-
-    });
+    .drag(
+      options.dragMove,
+      options.dragStart,
+      options.dragEnd
+      );
 }
 
 var lineRenderingOptions = {
   paper: null,
   line: null,
-  attributes: defaultRenderingAttributes,
   dragMove: null,
   dragStart: null,
   dragEnd: null
 };
 
-function renderLine(userOptions) {
+function renderLine(userOptions, customAttributes) {
+  var attributes = extend(defaultRenderingAttributes, customAttributes);
   var options = extend(lineRenderingOptions, userOptions);
 
   var line = options.line;
@@ -39,7 +50,7 @@ function renderLine(userOptions) {
       line.endX,
       line.endY
       )
-    .attr(options.attributes)
+    .attr(attributes)
     .data({
       startX: line.startX,
       startY: line.startY,
@@ -57,12 +68,12 @@ var circleRenderingOptions = {
   paper: null,
   circle: null,
   radius: 8,
-  attributes: defaultRenderingAttributes,
   onClick: null
 }
 
-function renderCircle(customOptions){
+function renderCircle(customOptions, customAttributes){
   
+  var attributes = extend(defaultRenderingAttributes, customAttributes);
   var options = extend(circleRenderingOptions, customOptions);
   
   var circle = options.circle;
@@ -72,7 +83,7 @@ function renderCircle(customOptions){
       circle.y,
       options.radius
       )
-      .attr(options.attributes)
+      .attr(attributes)
       .data({
         x: circle.x,
         y: circle.y
