@@ -10,7 +10,7 @@ var dropLine = require('./line/drop');
 var dropCircle = require('./circle/drop');
 var renderer = require('./renderer');
 var guidGenerator = require('./utilities/guid-generator.js');
-var getDraggedLine = require('./get-dragged-line');
+var getLine = require('./line/get');
 
 (function () {
   const CircleRadius = 8;
@@ -101,7 +101,7 @@ var getDraggedLine = require('./get-dragged-line');
     var x = (dragStartX + xFromStart) - relativeLocationX;
     var y = (dragStartY + yFromStart) - relativeLocationY;
 
-    lineBeingDragged = getDraggedLine(this, lines);
+    lineBeingDragged = getLine.getDraggedLine(this, lines);
 
     var newCircle = {
       x: x,

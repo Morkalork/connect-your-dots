@@ -14,4 +14,6 @@ function getDraggedLine(lineInstance, lines) {
   });
 };
 
-module.exports = getDraggedLine;
+module.exports = {
+  getDraggedLine: getDraggedLine
+};
