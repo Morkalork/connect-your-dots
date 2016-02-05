@@ -1,4 +1,4 @@
-var doesLineExist = require('../does-line-exist');
+var doesLineExist = require('../exists');
 
 function addLineBetweenCircles(lines, oldCircle, newCircle) {
   

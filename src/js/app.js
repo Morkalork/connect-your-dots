@@ -3,11 +3,11 @@ var _ = require('lodash');
 
 var extend = require('./utilities/extend');
 var matrixParser = require('./matrix-parser');
-var addLine = require('./add-line');
+var addLine = require('./line/add');
 var arrowFigure = require('./figures/arrow.js');
-var findPolygons = require('./find-polygons');
-var dropLine = require('./drop-line');
-var dropCircle = require('./drop-circle');
+var findPolygons = require('./polygon/find');
+var dropLine = require('./line/drop');
+var dropCircle = require('./circle/drop');
 var renderer = require('./renderer');
 var guidGenerator = require('./utilities/guid-generator.js');
 var getDraggedLine = require('./get-dragged-line');
