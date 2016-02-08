@@ -52,6 +52,14 @@ function isCircleAlreadyFound(circle, foundCircles) {
  *                     /
  *                    /
  *                  (*)
+ * 
+ * But this one is tricky
+ * (*)--------(*)---------(*)
+ *              \         /
+ *               \       /
+ *                \     /
+ *                 \   /
+ *                  (*)
  */
 function isCirclePartOfPolygon(circle, circles, lines, foundCircles) {
 
@@ -59,13 +67,15 @@ function isCirclePartOfPolygon(circle, circles, lines, foundCircles) {
     foundCircles = [circle];
   }
 
+  // These are the lines connected to this circle
   var circleLines = _.filter(lines, line => {
     return (line.startX === circle.x && line.startY === circle.y)
       ||
       (line.endX === circle.x && line.endY === circle.y);
   });
 
-  if (circleLines && circleLines.length > 0) {
+  // Now, we're only interested in a circle if it has more than one connection
+  if (circleLines && circleLines.length > 1) {
 
     _.forEach(circleLines, circleLine => {
       var otherCircleOnLine = getLineCircle(circleLine, circle, circles);
@@ -84,41 +94,6 @@ function isCirclePartOfPolygon(circle, circles, lines, foundCircles) {
   return foundCircles;
 }
 
-function getCirclesConnectedToCircle(circle, circles, lines) {
-  if (!circles || circles.length <= 0) {
-    return [];
-  }
-
-  if (!lines || lines.length <= 0) {
-    return [];
-  }
-
-  var connectedCircles = [circle];
-
-  _.forEach(lines, line => {
-    if (line.startX === circle.x && line.startY === circle.y) {
-      connectedCircles.push(line.endCircle);
-    } else if (line.endX === circle.x && line.endY === circle.y) {
-      connectedCircles.push(line.startCircle);
-    }
-
-  });
-
-  circles = _.difference(circles, connectedCircles);
-
-  _.forEach(connectedCircles, connectedCircle => {
-    if (connectedCircle.x !== circle.x && connectedCircle.y !== circle.y) {
-      var moreConnectedCircles = getCirclesConnectedToCircle(connectedCircle, circles, lines);
-
-      _.forEach(moreConnectedCircles, more => {
-        addIfNotExists(connectedCircles, more);
-      });
-    }
-  });
-
-  return connectedCircles;
-};
-
 function isPolygon(circles, lines) {
 
   if (!circles || circles.length <= 0) {
@@ -129,7 +104,16 @@ function isPolygon(circles, lines) {
     return;
   }
 
-  var foundCircles = isCirclePartOfPolygon(circles[0], circles, lines);
+  var count = 0;
+  var circlesLeftToCheck = circles;
+  do {
+    console.log(circlesLeftToCheck);
+    count++;
+    var foundCircles = isCirclePartOfPolygon(circlesLeftToCheck[0], circlesLeftToCheck, lines);
+    console.log("Found circles: ", foundCircles);
+    circlesLeftToCheck = _.difference(circlesLeftToCheck, foundCircles);
+  }
+  while (count < 10 && circlesLeftToCheck.length > 0);
 
   return [foundCircles];
 };

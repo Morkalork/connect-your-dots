@@ -11,13 +11,16 @@ var dropCircle = require('./circle/drop');
 var renderer = require('./renderer');
 var guidGenerator = require('./utilities/guid-generator.js');
 var getLine = require('./line/get');
+var polygonParseRealPath = require('./polygon/parse-real-path');
 
 (function () {
   const CircleRadius = 8;
   const PlaceholderStrokeColor = "#0098BA";
   const PlaceholderFillColor = "#A8E0ED";
+  const StrokeColor = "#000";
   const SelectedStrokeColor = "#FF0000";
 
+  var svg;
   var paper;
   var lastCircle;
   var lastPlaceholder;
@@ -31,18 +34,24 @@ var getLine = require('./line/get');
   var dragIsCalled = false;
   var lineBeingDragged = null;
   var ctrlDown = false;
+  var shiftDown = false;
 
   var circles = [];
   var lines = [];
+  var rectangles = [];
   var lineFigures = [];
   var polygons = [];
+
+  var sizeRectangleStartCoordinates = null;
+  var sizeRectangle = null;
+  var sizeRectangleElement = null;
 
   /**
    * Rendering options
    */
   var customAttributes = {
-    stroke: "#000",
-    strokeWidth: 8,
+    stroke: StrokeColor,
+    strokeWidth: 4,
     fill: "#bada55",
     id: ""
   };
@@ -50,7 +59,6 @@ var getLine = require('./line/get');
   var lineOptions = {
     paper: null,
     line: null,
-    attributes: customAttributes,
     dragMove: lineMove,
     dragStart: lineMoveStart,
     dragEnd: lineMoveEnd
@@ -60,23 +68,122 @@ var getLine = require('./line/get');
     paper: null,
     circle: null,
     radius: CircleRadius,
-    attributes: customAttributes,
     onClick: circleClick
   };
 
   var polygonOptions = {
     paper: null,
     polygon: null,
-    attributes: customAttributes,
     dragMove: polygonMove,
     dragStart: polygonMoveStart,
     dragEnd: polygonMoveStop
-  }
+  };
+
+  var rectangleOptions = {
+    paper: null,
+    rectangle: null
+  };
 
   /**
    * Event handlers
    */
-  function polygonMoveStart() {
+  function svgMouseDown(e) {
+    if (shiftDown) {
+      sizeRectangleStartCoordinates = {
+        x: parseInt(e.offsetX),
+        y: parseInt(e.offsetY),
+        height: 0,
+        width: 0
+      };
+
+      svg.addEventListener('mousemove', svgMouseMove);
+      svg.addEventListener('mouseup', svgMouseUp);
+    }
+  };
+
+  function svgMouseUp(e) {
+    svg.removeEventListener('mouseup', svgMouseUp);
+    svg.removeEventListener('mousemove', svgMouseMove);
+    
+    rectangles.push(sizeRectangle);
+    sizeRectangle = null;
+    sizeRectangleElement = null;
+
+    paper.clear();
+    render();
+  };
+
+  function svgMouseMove(e) {
+    var x = sizeRectangleStartCoordinates.x;
+    var y = sizeRectangleStartCoordinates.y;
+
+    var newX = parseInt(e.offsetX);
+    var newY = parseInt(e.offsetY);
+
+    var width = newX - x;
+    var height = newY - y;
+
+    if (width < 0) {
+      width = sizeRectangleStartCoordinates.x - newX;
+      x = newX;
+    }
+
+    if (height < 0) {
+      height = sizeRectangleStartCoordinates.y - newY;
+      y = newY;
+    }
+
+    if (sizeRectangleElement) {
+      sizeRectangleElement.remove();
+    }
+    
+    
+    sizeRectangle = {
+      x: x,
+      y: y,
+      width: width,
+      height: height
+    };
+
+    sizeRectangleElement = paper
+      .rect(sizeRectangle)
+      .attr({
+        stroke: "#000",
+        strokeWidth: 2,
+        opacity: 0.3,
+        "fill-opacity": 0,
+        strokeDasharray: "3,3"
+      });
+
+  }
+
+  function paperClick(e) {
+    if (dragIsCalled) {
+      dragIsCalled = false;
+      return;
+    }
+
+    if (e.which === 2) {
+      return;
+    }
+
+    if (!shiftDown) {
+      selectedCircle = null;
+      var newCircle = {
+        x: e.offsetX,
+        y: e.offsetY
+      };
+
+      drawCircle(newCircle);
+      selectCircle(newCircle);
+    }
+
+    paper.clear();
+    render();
+  };
+
+  function polygonMoveStart(e) {
+    dragIsCalled = true;
     this.data('originalTransform', this.transform().local);
   };
 
@@ -87,6 +194,16 @@ var getLine = require('./line/get');
       x: parseInt(transformSplit[0]),
       y: parseInt(transformSplit[1])
     };
+
+    var realPath = this.realPath;
+    var newPolygon = polygonParseRealPath(realPath);
+
+    _.forEach(polygons, polygon => {
+      if (polygon.id === this.id) {
+        polygon.coordinates = newPolygon
+        return false; // break
+      }
+    });
   };
 
   function polygonMove(dx, dy) {
@@ -96,7 +213,7 @@ var getLine = require('./line/get');
       transform: originalTransform + extraTransform
     });
   };
-  
+
   function lineMove(xFromStart, yFromStart) {
     var x = (dragStartX + xFromStart) - relativeLocationX;
     var y = (dragStartY + yFromStart) - relativeLocationY;
@@ -310,13 +427,16 @@ var getLine = require('./line/get');
 
     _.forEach(circles, circle => {
       circleOptions.circle = circle;
+      var attributes = extend({}, customAttributes);
 
       if (selectedCircle &&
         (selectedCircle.x === circle.x && selectedCircle.y === circle.y)) {
-        circleOptions.stroke = SelectedStrokeColor;
+        attributes.stroke = SelectedStrokeColor;
+      } else {
+        attributes.stroke = StrokeColor;
       }
 
-      renderer.circle(circleOptions);
+      renderer.circle(circleOptions, attributes);
     });
 
     _.forEach(lineFigures, figure => {
@@ -329,6 +449,13 @@ var getLine = require('./line/get');
       attributes.id = polygon.id;
       renderer.polygon(polygonOptions, attributes);
     });
+
+    _.forEach(rectangles, rectangle => {
+      rectangleOptions.rectangle = rectangle;
+      var attributes = extend({}, customAttributes);
+      attributes.id = guidGenerator.run();
+      renderer.rectangle(rectangleOptions, attributes);
+    });
   };
 
   function setupSnap() {
@@ -337,28 +464,9 @@ var getLine = require('./line/get');
     lineOptions.paper = paper;
     circleOptions.paper = paper;
     polygonOptions.paper = paper;
+    rectangleOptions.paper = paper;
 
-    paper.click(function (e) {
-      if (dragIsCalled) {
-        dragIsCalled = false;
-        return;
-      }
-
-      if (e.which === 2) {
-        return;
-      }
-
-      selectedCircle = null;
-      var newCircle = {
-        x: e.offsetX,
-        y: e.offsetY
-      };
-
-      drawCircle(newCircle);
-      selectCircle(newCircle);
-      paper.clear();
-      render();
-    });
+    paper.click(paperClick);
   };
 
   function drawCircle(newCircle) {
@@ -403,20 +511,26 @@ var getLine = require('./line/get');
   }
 
   function init() {
-    var svg = document.getElementById('svg-main');
+    svg = document.getElementById('svg-main');
     svg
     .oncontextmenu = function (e) {
       e.preventDefault(); // Be gone with ye!
       return false;
     }
 
+    svg.addEventListener('mousedown', svgMouseDown);
+
     window.addEventListener('keydown', function (e) {
-      if (e.keyCode === 17) {
+      if (e.keyCode === 16) {
+        shiftDown = true;
+      } else if (e.keyCode === 17) {
         ctrlDown = true;
       }
     })
     addEventListener('keyup', function (e) {
-      if (e.keyCode === 17) {
+      if (e.keyCode === 16) {
+        shiftDown = false;
+      } else if (e.keyCode === 17) {
         ctrlDown = false;
       }
     });

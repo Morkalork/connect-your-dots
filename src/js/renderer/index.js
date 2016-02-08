@@ -8,6 +8,20 @@ var defaultRenderingAttributes = {
   strokeDasharray: ""
 };
 
+var rectangleRenderingOptions = {
+  paper: null,
+  rectangle: null
+};
+
+function renderRectangle(customOptions, customAttributes){
+  var attributes = extend(defaultRenderingAttributes, customAttributes);
+  var options = extend(polygonRenderingOptions, customOptions);
+  
+  options.paper
+    .rect(options.rectangle)
+    .attr(attributes);
+};
+
 var polygonRenderingOptions = {
   paper: null,
   polygon: null,
@@ -28,7 +42,7 @@ function renderPolygon(customOptions, customAttributes) {
       options.dragStart,
       options.dragEnd
       );
-}
+};
 
 var lineRenderingOptions = {
   paper: null,
@@ -62,14 +76,14 @@ function renderLine(userOptions, customAttributes) {
       options.dragStart,
       options.dragEnd
       );
-}
+};
 
 var circleRenderingOptions = {
   paper: null,
   circle: null,
   radius: 8,
   onClick: null
-}
+};
 
 function renderCircle(customOptions, customAttributes){
   
@@ -95,10 +109,11 @@ function renderCircle(customOptions, customAttributes){
 
         e.stopPropagation();
       });
-}
+};
 
 module.exports = {
   polygon: renderPolygon,
   line: renderLine,
-  circle: renderCircle
+  circle: renderCircle,
+  rectangle: renderRectangle
 };
